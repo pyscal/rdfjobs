@@ -1,0 +1,52 @@
+name: rdf-wf-3
+channels:
+- conda-forge
+dependencies:
+- ase =3.22.1
+- coveralls
+- coverage
+- codacy-coverage
+- defusedxml =0.7.1
+- h5py =3.8.0
+- matplotlib-base =3.7.1
+- mendeleev =0.13.1
+- mp-api =0.33.3
+- numpy =1.24.3
+- pandas =2.0.2
+- phonopy =2.19.1
+- pint =0.21
+- pyiron_base =0.5.31
+- pyiron_atomistics
+- pymatgen =2023.5.10
+- scikit-learn =1.2.2
+- scipy =1.10.1
+- seekpath =2.1.0
+- spglib =2.0.2
+- python >3.8
+- pyscal3 =3.1.0
+- pyscal-rdf =0.0.7  
+- rdflib
+- pyyaml
+- jupyterlab
+- graphviz
+- python-graphviz
+- pyyaml
+- ipycytoscape
+- networkx
+- panel
+- voila
+- plotly
+- jupyterlab-dash
+- sqlalchemy <2.0.0
+- rdflib-sqlalchemy
+- pyparsing =3.0.9
+- seaborn =0.12.2
+- scikit-image =0.19.3
+- randspg =0.0.1
+- boto3 =1.26.142
+- moto =4.1.10
+- pycp2k =0.2.2
+- typeguard =4.0.0
+- aws-sam-translator =1.65.0
+- lammps
+    
