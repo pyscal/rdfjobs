@@ -46,7 +46,7 @@ class RDFLammps(Lammps):
 
     @structure.setter
     def structure(self, structure):
-        if isninstance(structure, System):
+        if isinstance(structure, System):
             self._initial_sample = structure.sample
             self._initial_structure = structure
             ase_structure = structure.to_ase()
