@@ -11,6 +11,7 @@ from rdflib import Graph, Literal, Namespace, XSD, RDF, RDFS, BNode, URIRef, FOA
 
 import numpy as np
 import os
+import copy
 
 PROV = Namespace("http://www.w3.org/ns/prov#")
 CMSO = Namespace("https://purls.helmholtz-metadaten.de/cmso/")
