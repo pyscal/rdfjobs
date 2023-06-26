@@ -78,7 +78,15 @@ class RDFLammps(Lammps):
         )
         self._method = "MinimizationMD"
             
-    
+    def get_structure_as_system(self):
+        fstruct = self.get_structure()
+        #now change the system
+        final_structure = System(fstruct, format="ase")
+        #we have to read in the info; what it  is missing is the sysdict
+        final_structure.atoms._lattice_constant = self._initial_structure.atoms._lattice_constant
+        final_structure._structure_dict = copy.copy(self._initial_structure._structure_dict)
+        return final_structure
+
     def collect_rdf(self):
         #-------------------------------------------------
         # Step 1: Add initial structure if does not exist
