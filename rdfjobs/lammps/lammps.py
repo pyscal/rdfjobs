@@ -51,9 +51,11 @@ class RDFLammps(Lammps):
             self._initial_sample = structure.sample
             self._initial_structure = structure
             ase_structure = structure.to_ase()
-            structure = ase_to_pyiron(ase_structure)
-        self._prism = UnfoldingPrism(structure.cell)
-        GenericInteractive.structure.fset(self, structure)
+            pyiron_structure = ase_to_pyiron(ase_structure)
+        else:
+            pyiron_structure = structure
+        self._prism = UnfoldingPrism(pyiron_structure.cell)
+        GenericInteractive.structure.fset(self, pyiron_structure)
     
     def calc_minimize(
         self,
