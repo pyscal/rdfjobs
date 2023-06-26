@@ -122,9 +122,12 @@ class RDFLammps(Lammps):
         self.graph.add((lammps_agent, RDF.type, PROV.SoftwareAgent))
         self.graph.add((pyiron_agent, PROV.actedOnBehalfOf, lammps_agent))
         self.graph.add((lammps_agent, RDFS.label, Literal("LAMMPS")))
-        #
-
- 
+        
+        #now add calculated quantity
+        if self._method == "MinimizationMD":
+            self.graph.add_calculated_quantity("TotalEnergy", 
+                self.output.energy_tot[-1],
+                unit='EV', sample=self._final_sample) 
             
 
     def collect_output(self):
