@@ -1,4 +1,4 @@
-import pyiron_atomistics.lammps.lammps as pa
+from pyiron_atomistics.lammps.lammps import Lammps
 from pyiron_atomistics.lammps.base import LammpsBase
 from pyiron_atomistics.atomistics.job.interactive import GenericInteractive
 from pyiron_atomistics.lammps.structure import UnfoldingPrism
@@ -16,7 +16,7 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 CMSO = Namespace("https://purls.helmholtz-metadaten.de/cmso/")
 PODO = Namespace("https://purls.helmholtz-metadaten.de/podo/")
 
-class RDFLammps(pa.Lammps):
+class RDFLammps(Lammps):
     def __init__(self, project, job_name, dbfile=None):
         super().__init__(project, job_name)
         #self._executable_activate(enforce=True)
