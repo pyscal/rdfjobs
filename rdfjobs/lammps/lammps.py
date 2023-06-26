@@ -46,10 +46,11 @@ class RDFLammps(Lammps):
 
     @structure.setter
     def structure(self, structure):
-        self._initial_sample = structure.sample
-        self._initial_structure = structure
-        ase_structure = structure.to_ase()
-        structure = ase_to_pyiron(ase_structure)
+        if isninstance(structure, System):
+            self._initial_sample = structure.sample
+            self._initial_structure = structure
+            ase_structure = structure.to_ase()
+            structure = ase_to_pyiron(ase_structure)
         self._prism = UnfoldingPrism(structure.cell)
         GenericInteractive.structure.fset(self, structure)
     
