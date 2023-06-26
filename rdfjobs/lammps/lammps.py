@@ -94,7 +94,7 @@ class RDFLammps(Lammps):
         #now change the system
         final_structure = System(fstruct, format="ase")
         #we have to read in the info; what it  is missing is the sysdict
-        final_structure.atoms._lattice_constant = self._initial_structure._lattice_constant
+        final_structure.atoms._lattice_constant = self._initial_structure.atoms._lattice_constant
         final_structure._structure_dict = copy.copy(self._initial_structure._structure_dict)
         #final structure is prepared, now we can simply add it to the system
         #this will make sure there is a new id for the system
