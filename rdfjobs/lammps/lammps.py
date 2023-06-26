@@ -39,9 +39,9 @@ class RDFLammps(pa.Lammps):
 
     @property
     def structure(self):
-        struct = GenericInteractive.structure.fget(self)
-        struct = pyiron_to_ase(struct)
-        return System(struct, format='ase')
+        #struct = GenericInteractive.structure.fget(self)
+        #struct = pyiron_to_ase(struct)
+        return GenericInteractive.structure.fget(self)
 
 
     @structure.setter
