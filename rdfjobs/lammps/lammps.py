@@ -101,6 +101,28 @@ class RDFLammps(Lammps):
         #this will make sure there is a new id for the system
         self.graph.add_structure_to_graph(final_structure)
         self._final_sample = self.graph.sample
+        #Here we need to add inherited info: CalculatedProperties will be lost
+        #Defects will be inherited
+        #add vac stuff
+        material = list([k[2] for k in self.graph.triples((self._initial_sample, CMSO.hasMaterial, None))])[0]
+        defects = list([x[2] for x in self.graph.triples((material, CMSO.hasDefect, None))])
+        #now for each defect we copy add this to the final sample
+        final_material = list([k[2] for k in self.graph.triples((self._final_sample, CMSO.hasMaterial, None))])[0]
+        for defect in defects:
+            new_defect = BNode()
+            self.graph.add((final_material, CMSO.hasDefect, new_defect))
+            #now fetch all defect based info
+            for triple in self.graph.triples((defect, None, None)):
+                self.graph.add((new_defect, triple[1], triple[2]))
+        #now add the special props for vacancy
+        initial_simcell = self.graph.value(self._initial_sample, CMSO.hasSimulationCell)
+        final_simcell = self.graph.value(self._final_sample, CMSO.hasSimulationCell) 
+        for triple in self.graph.triples((initial_simcell, PODO.hasVacancyConcentration, None)):
+            self.graph.add((final_simcell, triple[1], triple[2]))
+        for triple in self.graph.triples((initial_simcell, PODO.hasNumberOfVacancies, None)):
+            self.graph.add((final_simcell, triple[1], triple[2]))
+            
+
         #-------------------------------------------------
         # Step 3: Add PROV-O mappings
         #-------------------------------------------------        
