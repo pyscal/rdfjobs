@@ -49,4 +49,6 @@ dependencies:
 - typeguard =4.0.0
 - aws-sam-translator =1.65.0
 - lammps
+- sphinxdft >=2.7.0
+- sphinxdft-data
     
