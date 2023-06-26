@@ -6,8 +6,8 @@ from pyiron_base import state, Executable
 from pyiron_atomistics.atomistics.structure.atoms import ase_to_pyiron, pyiron_to_ase
 
 from pyscal_rdf.rdfsystem import System
+from pyscal_rdf import StructureGraph
 from rdflib import Graph, Literal, Namespace, XSD, RDF, RDFS, BNode, URIRef, FOAF, SKOS, DCTERMS
-from graph_utils import change_dynamic_properties
 
 import numpy as np
 import os
@@ -16,15 +16,15 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 CMSO = Namespace("https://purls.helmholtz-metadaten.de/cmso/")
 PODO = Namespace("https://purls.helmholtz-metadaten.de/podo/")
 
-class Lammps(pa.Lammps):
+class RDFLammps(pa.Lammps):
     def __init__(self, project, job_name, dbfile=None):
         super().__init__(project, job_name)
         #self._executable_activate(enforce=True)
         self._method = None
         if dbfile is None:
             dbfile = os.path.join(self.project.path, "project.db")
-        self.graph = Graph(store="SQLAlchemy", store_file=dbfile)
-        self.graph.bind("prov", PROV)    
+        self.graph = StructureGraph(store="SQLAlchemy", store_file=dbfile)
+        self.graph.graph.bind("prov", PROV)    
         self._initial_sample = None
         self._final_sample = None
         self._initial_structure = None    
