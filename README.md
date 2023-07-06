@@ -37,7 +37,7 @@ pip install .
 
 ## Using `rdfjobs`
 
-A detailed documentation is coming soon. Please check the [notebooks](notebooks/) folder for some examples.
+A detailed documentation is coming soon. Please check the [examples](examples/) folder for some examples.
 
 
 ## Acknowledgements
