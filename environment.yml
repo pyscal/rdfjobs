@@ -1,4 +1,4 @@
-name: rdf-wf-4
+name: rdfjobs
 channels:
 - conda-forge
 dependencies:
