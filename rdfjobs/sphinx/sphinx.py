@@ -40,7 +40,8 @@ class RDFSphinx(Sphinx):
                 module='sphinx',
                 path_binary_codes=state.settings.resource_paths
             )
-
+            if self.server.cores > 1:
+                self._executable.mpi = True
     @property
     def structure(self):
         #struct = GenericInteractive.structure.fget(self)
