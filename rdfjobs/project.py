@@ -59,14 +59,14 @@ class StructureFactory(PyironFactory):
         cubic=True):
 
         if crystalstructure is None:
-            crystalstructure = self.graph._element_dict[element]['structure']
+            crystalstructure = self._graph._element_dict[element]['structure']
             if a is None:
-                a = self.graph._element_dict[element]['lattice_constant']
+                a = self._graph._element_dict[element]['lattice_constant']
         
-        if covera = None:
+        if covera is None:
             covera = 1.633
 
-        return self.graph._annotated_make_crystal(crystalstructure,
+        return self._graph._annotated_make_crystal(crystalstructure,
             lattice_constant=a,
             ca_ratio = covera,
             element = element,
