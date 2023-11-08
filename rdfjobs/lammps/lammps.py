@@ -6,6 +6,7 @@ from pyiron_base import state, Executable
 from pyiron_atomistics.atomistics.structure.atoms import ase_to_pyiron, pyiron_to_ase
 
 from pyscal_rdf.rdfsystem import System
+from pyscal_rdf import StructureGraph
 from rdflib import Graph, Literal, Namespace, XSD, RDF, RDFS, BNode, URIRef, FOAF, SKOS, DCTERMS
 
 import numpy as np
@@ -13,15 +14,16 @@ import os
 import copy
 
 PROV = Namespace("http://www.w3.org/ns/prov#")
-CMSO = Namespace("https://purls.helmholtz-metadaten.de/cmso/")
-PODO = Namespace("https://purls.helmholtz-metadaten.de/podo/")
+CMSO = Namespace("http://purls.helmholtz-metadaten.de/cmso/")
+PODO = Namespace("http://purls.helmholtz-metadaten.de/podo/")
 
 class RDFLammps(Lammps):
     def __init__(self, project, job_name):
         super().__init__(project, job_name)
         #self._executable_activate(enforce=True)
         self._method = None
-        self.graph = project.graph
+        dbfile = os.path.join(self.project.path, "project.db")
+        self.graph = StructureGraph(store="SQLAlchemy", store_file=dbfile)
         self.graph.graph.bind("prov", PROV)    
         self._initial_sample = None
         self._final_sample = None
@@ -49,7 +51,7 @@ class RDFLammps(Lammps):
         if isinstance(structure, System):
             self._initial_sample = structure.sample
             self._initial_structure = structure
-            ase_structure = structure.to_ase()
+            ase_structure = structure.write.ase()
             pyiron_structure = ase_to_pyiron(ase_structure)
         else:
             pyiron_structure = structure
