@@ -87,7 +87,7 @@ class StructureFactory(PyironFactory):
         a=1,
         overlap=0.0,
         add_to_graph=True,
-        )
+        ):
 
         return self._graph._annotated_make_grain_boundary(self, 
             axis,

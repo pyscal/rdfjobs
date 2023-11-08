@@ -6,7 +6,6 @@ from pyiron_base import state, Executable
 from pyiron_atomistics.atomistics.structure.atoms import ase_to_pyiron, pyiron_to_ase
 
 from pyscal_rdf.rdfsystem import System
-from pyscal_rdf import StructureGraph
 from rdflib import Graph, Literal, Namespace, XSD, RDF, RDFS, BNode, URIRef, FOAF, SKOS, DCTERMS
 
 import numpy as np
@@ -18,13 +17,11 @@ CMSO = Namespace("https://purls.helmholtz-metadaten.de/cmso/")
 PODO = Namespace("https://purls.helmholtz-metadaten.de/podo/")
 
 class RDFLammps(Lammps):
-    def __init__(self, project, job_name, dbfile=None):
+    def __init__(self, project, job_name):
         super().__init__(project, job_name)
         #self._executable_activate(enforce=True)
         self._method = None
-        if dbfile is None:
-            dbfile = os.path.join(self.project.path, "project.db")
-        self.graph = StructureGraph(store="SQLAlchemy", store_file=dbfile)
+        self.graph = project.graph
         self.graph.graph.bind("prov", PROV)    
         self._initial_sample = None
         self._final_sample = None
@@ -101,6 +98,7 @@ class RDFLammps(Lammps):
             self.graph.add_structure_to_graph(self._initial_structure)
             #reset the sample id
             self._initial_sample = self.graph.sample
+        
         #-------------------------------------------------
         # Step 2: Add final structure
         #-------------------------------------------------        
@@ -114,6 +112,7 @@ class RDFLammps(Lammps):
         #this will make sure there is a new id for the system
         self.graph.add_structure_to_graph(final_structure)
         self._final_sample = self.graph.sample
+        
         #Here we need to add inherited info: CalculatedProperties will be lost
         #Defects will be inherited
         #add vac stuff
