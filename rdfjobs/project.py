@@ -58,7 +58,7 @@ class StructureFactory(PyironFactory):
         a=None,
         covera=None,
         cubic=True,
-        add_to_collection=True):
+        add_to_graph=True):
 
         if crystalstructure is None:
             crystalstructure = self._graph._element_dict[element]['structure']
