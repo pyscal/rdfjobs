@@ -52,11 +52,13 @@ class StructureFactory(PyironFactory):
         self._graph = graph
 
     def bulk(self, 
-        element, 
+        element,
+        repetitions=None, 
         crystalstructure=None,
         a=None,
         covera=None,
-        cubic=True):
+        cubic=True,
+        add_to_collection=True):
 
         if crystalstructure is None:
             crystalstructure = self._graph._element_dict[element]['structure']
@@ -67,8 +69,33 @@ class StructureFactory(PyironFactory):
             covera = 1.633
 
         return self._graph._annotated_make_crystal(crystalstructure,
+            repetitions=repetitions,
             lattice_constant=a,
             ca_ratio = covera,
             element = element,
             primitive = not cubic,
+            add_to_graph=add_to_graph,
             )
+
+    def grain_boundary(self,
+        element,
+        axis,
+        sigma,
+        gb_plane,
+        repetitions = (1,1,1),
+        crystalstructure=None,
+        a=1,
+        overlap=0.0,
+        add_to_graph=True,
+        )
+
+        return self._graph._annotated_make_grain_boundary(self, 
+            axis,
+            sigma,
+            gb_plane,
+            structure = crystalstructure,
+            element=element,
+            lattice_constant=a,
+            repetitions=repetitions,
+            overlap=overlap,
+            add_to_graph=add_to_graph)
