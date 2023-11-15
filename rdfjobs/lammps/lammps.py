@@ -80,7 +80,43 @@ class RDFLammps(Lammps):
             style=style,
         )
         self._method = "MinimizationMD"
-            
+    
+    def calc_md(
+        self,
+        temperature=None,
+        pressure=None,
+        n_ionic_steps=1000,
+        time_step=1.0,
+        n_print=100,
+        temperature_damping_timescale=100.0,
+        pressure_damping_timescale=1000.0,
+        seed=None,
+        tloop=None,
+        initial_temperature=None,
+        langevin=False,
+        delta_temp=None,
+        delta_press=None,
+    ):
+        super(Lammps, self).calc_md(
+            temperature=temperature,
+            pressure=pressure,
+            n_ionic_steps=n_ionic_steps,
+            time_step=time_step,
+            n_print=n_print,
+            temperature_damping_timescale=temperature_damping_timescale,
+            pressure_damping_timescale=pressure_damping_timescale,
+            seed=seed,
+            tloop=tloop,
+            initial_temperature=initial_temperature,
+            langevin=langevin,
+            delta_temp=delta_temp,
+            delta_press=delta_press)
+        if pressure is None:
+            self._method = "NVTMD"
+        else:
+            self._method = "NPTMD"
+
+
     def get_structure_as_system(self):
         fstruct = self.get_structure()
         #now change the system
