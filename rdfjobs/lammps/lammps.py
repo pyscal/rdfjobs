@@ -12,6 +12,7 @@ from rdflib import Graph, Literal, Namespace, XSD, RDF, RDFS, BNode, URIRef, FOA
 import numpy as np
 import os
 import copy
+import ast
 
 PROV = Namespace("http://www.w3.org/ns/prov#")
 CMSO = Namespace("http://purls.helmholtz-metadaten.de/cmso/")
@@ -118,7 +119,7 @@ class RDFLammps(Lammps):
             self._method = "NVTMD"
         else:
             self._method = "NPTMD"
-
+        self._pressure = pressure
 
     def get_structure_as_system(self):
         fstruct = self.get_structure().to_ase()
@@ -133,6 +134,16 @@ class RDFLammps(Lammps):
         final_structure.atoms._lattice = self._initial_structure.atoms._lattice
         final_structure._structure_dict = copy.copy(self._initial_structure._structure_dict)
         return final_structure
+
+    def _get_potential_doi(self):
+        df = self.potential
+        df = df.loc[0]
+        if "Citations" in df.keys():
+            potdict = ast.literal_eval(df.loc[0]["Citations"][1:-1])
+            potential = "https://doi.org/"+potdict[list(potdict.keys())[0]]["doi"]
+        else:
+            potential = df.Name
+        return potential
 
     def _add_initial_structure_to_graph(self):
         #-------------------------------------------------
@@ -196,14 +207,14 @@ class RDFLammps(Lammps):
             self.graph.add((method, RDF.type, MSMO.MinimizationMD))
         elif self._method == "NPTMD":
             self.graph.add((method, RDF.type, MSMO.NPTMD))
-            self.graph.add((method, MSMO.hasPressure, self.input.pressure))
-            self.graph.add((method, MSMO.hasTemperature, self.input.temperature))
+            self.graph.add((method, MSMO.hasPressure, self._pressure))
+            self.graph.add((method, MSMO.hasTemperature, self.output.temperature))
 
         elif self._method == "NVTMD":
             self.graph.add((method, RDF.type, MSMO.NVTMD))
-            self.graph.add((method, MSMO.hasTemperature, self.input.temperature))
+            self.graph.add((method, MSMO.hasTemperature, self.output.temperature))
 
-        self.graph.add((method, MSMO.usesPotential, self.potential))
+        self.graph.add((method, MSMO.usesPotential, self._get_potential_doi()))
         self.graph.add((method, RDF.type, PROV.Activity))
         self.graph.add((self._final_sample, PROV.wasGeneratedBy, method))
         
