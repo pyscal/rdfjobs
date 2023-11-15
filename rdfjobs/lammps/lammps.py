@@ -120,6 +120,7 @@ class RDFLammps(Lammps):
         else:
             self._method = "NPTMD"
         self._pressure = pressure
+        self._temperature = temperature
 
     def get_structure_as_system(self):
         fstruct = self.get_structure().to_ase()
@@ -139,7 +140,7 @@ class RDFLammps(Lammps):
         df = self.potential
         df = df.loc[0]
         if "Citations" in df.keys():
-            potdict = ast.literal_eval(df.loc[0]["Citations"][1:-1])
+            potdict = ast.literal_eval(df["Citations"][1:-1])
             potential = "https://doi.org/"+potdict[list(potdict.keys())[0]]["doi"]
         else:
             potential = df.Name
@@ -207,14 +208,14 @@ class RDFLammps(Lammps):
             self.graph.add((method, RDF.type, MSMO.MinimizationMD))
         elif self._method == "NPTMD":
             self.graph.add((method, RDF.type, MSMO.NPTMD))
-            self.graph.add((method, MSMO.hasPressure, self._pressure))
-            self.graph.add((method, MSMO.hasTemperature, self.output.temperature))
+            self.graph.add((method, MSMO.hasPressure, Literal(self._pressure)))
+            self.graph.add((method, MSMO.hasTemperature, Literal(self._temperature)))
 
         elif self._method == "NVTMD":
             self.graph.add((method, RDF.type, MSMO.NVTMD))
-            self.graph.add((method, MSMO.hasTemperature, self.output.temperature))
+            self.graph.add((method, MSMO.hasTemperature, Literal(self._temperature)))
 
-        self.graph.add((method, MSMO.usesPotential, self._get_potential_doi()))
+        self.graph.add((method, MSMO.usesPotential, Literal(self._get_potential_doi())))
         self.graph.add((method, RDF.type, PROV.Activity))
         self.graph.add((self._final_sample, PROV.wasGeneratedBy, method))
         
