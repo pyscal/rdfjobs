@@ -17,6 +17,9 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 CMSO = Namespace("http://purls.helmholtz-metadaten.de/cmso/")
 PODO = Namespace("http://purls.helmholtz-metadaten.de/podo/")
 
+#Temporary namespace, which needs to be replaced
+MSMO = Namespace("http://purls.helmholtz-metadaten.de/msmo/")
+
 class RDFLammps(Lammps):
     def __init__(self, project, job_name):
         super().__init__(project, job_name)
@@ -118,7 +121,11 @@ class RDFLammps(Lammps):
 
 
     def get_structure_as_system(self):
-        fstruct = self.get_structure()
+        fstruct = self.get_structure().to_ase()
+        if self._method == "NPTMD":
+            #rescale volume
+            fstruct.cell = np.mean(self.output.cells, axis=0)
+
         #now change the system
         final_structure = System(fstruct, format="ase")
         #we have to read in the info; what it  is missing is the sysdict
@@ -127,7 +134,7 @@ class RDFLammps(Lammps):
         final_structure._structure_dict = copy.copy(self._initial_structure._structure_dict)
         return final_structure
 
-    def collect_rdf(self):
+    def _add_initial_structure_to_graph(self):
         #-------------------------------------------------
         # Step 1: Add initial structure if does not exist
         #-------------------------------------------------
@@ -136,7 +143,8 @@ class RDFLammps(Lammps):
             self.graph.add_structure_to_graph(self._initial_structure)
             #reset the sample id
             self._initial_sample = self.graph.sample
-        
+
+    def _add_final_structure_to_graph(self):
         #-------------------------------------------------
         # Step 2: Add final structure
         #-------------------------------------------------        
@@ -150,7 +158,8 @@ class RDFLammps(Lammps):
         #this will make sure there is a new id for the system
         self.graph.add_structure_to_graph(final_structure)
         self._final_sample = self.graph.sample
-        
+
+    def _add_inherited_properties(self):
         #Here we need to add inherited info: CalculatedProperties will be lost
         #Defects will be inherited
         #add vac stuff
@@ -172,7 +181,7 @@ class RDFLammps(Lammps):
         for triple in self.graph.graph.triples((initial_simcell, PODO.hasNumberOfVacancies, None)):
             self.graph.graph.add((final_simcell, triple[1], triple[2]))
 
-
+    def _add_provo_mappings(self):
         #-------------------------------------------------
         # Step 3: Add PROV-O mappings
         #-------------------------------------------------        
@@ -180,26 +189,50 @@ class RDFLammps(Lammps):
         self.graph.add((self._initial_sample, RDF.type, PROV.Entity))
         self.graph.add((self._final_sample, RDF.type, PROV.Entity))
         self.graph.add((self._final_sample, PROV.wasDerivedFrom, self._initial_sample))
+        
         #add the process that generated the samples
-        method = URIRef(f'http://example.org/{self._method}')
+        method = URIRef(self.name)
+        if self._method == "MinimizationMD":
+            self.graph.add((method, RDF.type, MSMO.MinimizationMD))
+        elif self._method == "NPTMD":
+            self.graph.add((method, RDF.type, MSMO.NPTMD))
+            self.graph.add((method, MSMO.hasPressure, self.input.pressure))
+            self.graph.add((method, MSMO.hasTemperature, self.input.temperature))
+
+        elif self._method == "NVTMD":
+            self.graph.add((method, RDF.type, MSMO.NVTMD))
+            self.graph.add((method, MSMO.hasTemperature, self.input.temperature))
+
+        self.graph.add((method, MSMO.usesPotential, self.potential))
         self.graph.add((method, RDF.type, PROV.Activity))
         self.graph.add((self._final_sample, PROV.wasGeneratedBy, method))
+        
         #add pyiron
         pyiron_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E457491")
         self.graph.add((pyiron_agent, RDF.type, PROV.SoftwareAgent))
         self.graph.add((method, PROV.wasAssociatedWith, pyiron_agent))
         self.graph.add((pyiron_agent, RDFS.label, Literal("pyiron")))
+        
         #add lammps
         lammps_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E447986")
         self.graph.add((lammps_agent, RDF.type, PROV.SoftwareAgent))
         self.graph.add((pyiron_agent, PROV.actedOnBehalfOf, lammps_agent))
         self.graph.add((lammps_agent, RDFS.label, Literal("LAMMPS")))
-        
+
+
+    def _add_calculated_properties(self):
         #now add calculated quantity
-        if self._method == "MinimizationMD":
-            self.graph.add_calculated_quantity("TotalEnergy", 
-                self.output.energy_tot[-1],
-                unit='EV', sample=self._final_sample) 
+        #if self._method == "MinimizationMD":
+        self.graph.add_calculated_quantity("TotalEnergy", 
+            self.output.energy_tot[-1],
+            unit='EV', sample=self._final_sample) 
+
+    def collect_rdf(self):
+        self._add_initial_structure_to_graph()
+        self._add_final_structure_to_graph()
+        self._add_inherited_properties()
+        self._add_provo_mappings()
+        self._add_calculated_properties()
             
 
     def collect_output(self):
