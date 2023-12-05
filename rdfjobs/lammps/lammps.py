@@ -13,13 +13,12 @@ import numpy as np
 import os
 import copy
 import ast
+import uuid
 
 PROV = Namespace("http://www.w3.org/ns/prov#")
 CMSO = Namespace("http://purls.helmholtz-metadaten.de/cmso/")
 PODO = Namespace("http://purls.helmholtz-metadaten.de/podo/")
-
-#Temporary namespace, which needs to be replaced
-MSMO = Namespace("http://purls.helmholtz-metadaten.de/msmo/")
+ASO = Namespace("http://purls.helmholtz-metadaten.de/aso/")
 
 class RDFLammps(Lammps):
     def __init__(self, project, job_name):
@@ -83,7 +82,8 @@ class RDFLammps(Lammps):
             n_print=n_print,
             style=style,
         )
-        self._method = "MinimizationMD"
+        self._method = "md_min"
+        self._pressure = pressure
     
     def calc_md(
         self,
@@ -116,15 +116,15 @@ class RDFLammps(Lammps):
             delta_temp=delta_temp,
             delta_press=delta_press)
         if pressure is None:
-            self._method = "NVTMD"
+            self._method = "md_nvt"
         else:
-            self._method = "NPTMD"
+            self._method = "md_npt"
         self._pressure = pressure
         self._temperature = temperature
 
     def get_structure_as_system(self):
         fstruct = self.get_structure().to_ase()
-        if self._method == "NPTMD":
+        if self._method == "md_npt":
             #rescale volume
             fstruct.cell = np.mean(self.output.cells, axis=0)
 
@@ -179,12 +179,14 @@ class RDFLammps(Lammps):
         defects = list([x[2] for x in self.graph.graph.triples((material, CMSO.hasDefect, None))])
         #now for each defect we copy add this to the final sample
         final_material = list([k[2] for k in self.graph.graph.triples((self._final_sample, CMSO.hasMaterial, None))])[0]
+        
         for defect in defects:
-            new_defect = BNode()
+            new_defect = URIRef(defect.toPython())
             self.graph.graph.add((final_material, CMSO.hasDefect, new_defect))
             #now fetch all defect based info
             for triple in self.graph.graph.triples((defect, None, None)):
                 self.graph.graph.add((new_defect, triple[1], triple[2]))
+        
         #now add the special props for vacancy
         initial_simcell = self.graph.graph.value(self._initial_sample, CMSO.hasSimulationCell)
         final_simcell = self.graph.graph.value(self._final_sample, CMSO.hasSimulationCell) 
@@ -203,33 +205,58 @@ class RDFLammps(Lammps):
         self.graph.add((self._final_sample, PROV.wasDerivedFrom, self._initial_sample))
         
         #add the process that generated the samples
-        method = URIRef(self.name)
-        if self._method == "MinimizationMD":
-            self.graph.add((method, RDF.type, MSMO.MinimizationMD))
-        elif self._method == "NPTMD":
-            self.graph.add((method, RDF.type, MSMO.NPTMD))
-            self.graph.add((method, MSMO.hasPressure, Literal(self._pressure)))
-            self.graph.add((method, MSMO.hasTemperature, Literal(self._temperature)))
+        activity = URIRef(f'activity:{uuid.uuid4()}')
+        self.graph.add((activity, RDF.type, PROV.Activity))
+        self.graph.add((activity, RDF.type, ASO.StructureOptimization))
 
-        elif self._method == "NVTMD":
-            self.graph.add((method, RDF.type, MSMO.NVTMD))
-            self.graph.add((method, MSMO.hasTemperature, Literal(self._temperature)))
+        method = URIRef(f'method:{uuid.uuid4()}')
+        self.graph.add((method, RDF.type, ASO.MolecularDynamics))
+        self.graph.add((activity, ASO.hasMethod, method))
 
-        self.graph.add((method, MSMO.usesPotential, Literal(self._get_potential_doi())))
-        self.graph.add((method, RDF.type, PROV.Activity))
-        self.graph.add((self._final_sample, PROV.wasGeneratedBy, method))
+        self.graph.add((activity, ASO.hasRelaxationDOF, ASO.AtomicPosition))
+        if self._pressure is None:
+            pass
+        elif np.isscalar(self._pressure):
+            self.graph.add((activity, ASO.hasRelaxationDOF, ASO.CellVolume))
+        else: 
+            #check if pressure is hydrostatic or not
+            axial_all_alike = None not in self._pressure[:3] and np.allclose(
+                self._pressure[:3], self._pressure[0]
+            )
+            shear_all_none = all(p is None for p in self._pressure[3:])
+            shear_all_zero = None not in self._pressure[3:] and np.allclose(self._pressure[3:], 0)
+            hydrostatic = axial_all_alike and (shear_all_none or shear_all_zero)
+            if hydrostatic:
+                self.graph.add((activity, ASO.hasRelaxationDOF, ASO.CellVolume))
+            else:
+                self.graph.add((activity, ASO.hasRelaxationDOF, ASO.CellVolume))
+                self.graph.add((activity, ASO.hasRelaxationDOF, ASO.CellShape))
+
+        if self._method == "md_min":
+            #depending on the nature of pressure, we have to add different DOF
+            pass
+        elif self._method == "md_npt":
+            self.graph.add((method, ASO.hasStatisticalEnsemble, ASO.NPT))
+        
+        elif self._method == "md_nvt":
+            self.graph.add((method, ASO.hasStatisticalEnsemble, ASO.NVT))
+        
+
+        #self.graph.add((method, MSMO.usesPotential, Literal(self._get_potential_doi())))
+        #self.graph.add((method, RDF.type, PROV.Activity))
+        #self.graph.add((self._final_sample, PROV.wasGeneratedBy, method))
         
         #add pyiron
-        pyiron_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E457491")
-        self.graph.add((pyiron_agent, RDF.type, PROV.SoftwareAgent))
-        self.graph.add((method, PROV.wasAssociatedWith, pyiron_agent))
-        self.graph.add((pyiron_agent, RDFS.label, Literal("pyiron")))
+        #pyiron_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E457491")
+        #self.graph.add((pyiron_agent, RDF.type, PROV.SoftwareAgent))
+        #self.graph.add((method, PROV.wasAssociatedWith, pyiron_agent))
+        #self.graph.add((pyiron_agent, RDFS.label, Literal("pyiron")))
         
         #add lammps
-        lammps_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E447986")
-        self.graph.add((lammps_agent, RDF.type, PROV.SoftwareAgent))
-        self.graph.add((pyiron_agent, PROV.actedOnBehalfOf, lammps_agent))
-        self.graph.add((lammps_agent, RDFS.label, Literal("LAMMPS")))
+        #lammps_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E447986")
+        #self.graph.add((lammps_agent, RDF.type, PROV.SoftwareAgent))
+        #self.graph.add((pyiron_agent, PROV.actedOnBehalfOf, lammps_agent))
+        #self.graph.add((lammps_agent, RDFS.label, Literal("LAMMPS")))
 
 
     def _add_calculated_properties(self):
