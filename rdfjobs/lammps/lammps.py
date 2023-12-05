@@ -146,6 +146,12 @@ class RDFLammps(Lammps):
             potential = df.Name
         return potential
 
+    def _get_potential_string(self):
+        df = self.potential
+        df = df.loc[0]
+        ps = df["Config"][0]
+        return ps.strip().split()
+
     def _add_initial_structure_to_graph(self):
         #-------------------------------------------------
         # Step 1: Add initial structure if does not exist
@@ -205,11 +211,12 @@ class RDFLammps(Lammps):
         self.graph.add((self._final_sample, PROV.wasDerivedFrom, self._initial_sample))
         
         #add the process that generated the samples
-        activity = URIRef(f'activity:{uuid.uuid4()}')
+        main_id = uuid.uuid4()
+        activity = URIRef(f'activity:{main_id}')
         self.graph.add((activity, RDF.type, PROV.Activity))
         self.graph.add((activity, RDF.type, ASO.StructureOptimization))
 
-        method = URIRef(f'method:{uuid.uuid4()}')
+        method = URIRef(f'method:{main_id}')
         self.graph.add((method, RDF.type, ASO.MolecularDynamics))
         self.graph.add((activity, ASO.hasMethod, method))
 
@@ -237,26 +244,58 @@ class RDFLammps(Lammps):
             pass
         elif self._method == "md_npt":
             self.graph.add((method, ASO.hasStatisticalEnsemble, ASO.NPT))
+            temperature = URIRef(f'temperature:{main_id}')
+            self.graph.add((temperature, RDF.type, ASO.InputParameter))
+            self.graph.add((temperature, RDFS.label, Literal('temperature', datatype=XSD.string)))
+            self.graph.add((activity, ASO.hasInputParameter, temperature))
+            self.graph.add((temperature, ASO.hasValue, Literal(self._temperature, datatype=XSD.float)))
+            self.graph.add((temperature, ASO.hasUnit, URIRef('http://qudt.org/vocab/unit/K')))
+
+            pressure = URIRef(f'pressure:{main_id}')
+            self.graph.add((pressure, RDF.type, ASO.InputParameter))
+            self.graph.add((pressure, RDFS.label, Literal('pressure', datatype=XSD.string)))
+            self.graph.add((activity, ASO.hasInputParameter, pressure))
+            self.graph.add((pressure, ASO.hasValue, Literal(self._pressure, datatype=XSD.float)))
+            self.graph.add((pressure, ASO.hasUnit, URIRef('http://qudt.org/vocab/unit/GigaPA')))
         
         elif self._method == "md_nvt":
             self.graph.add((method, ASO.hasStatisticalEnsemble, ASO.NVT))
+            temperature = URIRef(f'temperature:{main_id}')
+            self.graph.add((temperature, RDF.type, ASO.InputParameter))
+            self.graph.add((temperature, RDFS.label, Literal('temperature', datatype=XSD.string)))
+            self.graph.add((activity, ASO.hasInputParameter, temperature))
+            self.graph.add((temperature, ASO.hasValue, Literal(self._temperature, datatype=XSD.float)))
+            self.graph.add((temperature, ASO.hasUnit, URIRef('http://qudt.org/vocab/unit/K')))
         
+        potential_string = self._get_potential_string()
+        potential_string = " ".join(potential_string.split()[1:])
+        potential = URIRef(f'potential:{main_id}')
 
-        #self.graph.add((method, MSMO.usesPotential, Literal(self._get_potential_doi())))
-        #self.graph.add((method, RDF.type, PROV.Activity))
-        #self.graph.add((self._final_sample, PROV.wasGeneratedBy, method))
+        if 'meam' in potential_string:
+            self.graph.add((potential, RDF.type, ASO.MEAM))
+        elif 'eam' in potential_string:
+            self.graph.add((potential, RDF.type, ASO.EAM))
+        elif 'lj' in potential_string:
+            self.graph.add((potential, RDF.type, ASO.LennardJones))
+        elif 'ace' in potential_string:
+            self.graph.add((potential, RDF.type, ASO.MLPotential))
+        else:
+            self.graph.add((potential, RDF.type, ASO.InteratomicPotential))
+
+        self.graph.add((potential, ASO.hasReference, Literal(self._get_potential_doi())))
+        self.graph.add((self._final_sample, PROV.wasGeneratedBy, activity))
         
         #add pyiron
-        #pyiron_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E457491")
-        #self.graph.add((pyiron_agent, RDF.type, PROV.SoftwareAgent))
-        #self.graph.add((method, PROV.wasAssociatedWith, pyiron_agent))
-        #self.graph.add((pyiron_agent, RDFS.label, Literal("pyiron")))
+        pyiron_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E457491")
+        self.graph.add((pyiron_agent, RDF.type, PROV.SoftwareAgent))
+        self.graph.add((activity, PROV.wasAssociatedWith, pyiron_agent))
+        self.graph.add((pyiron_agent, RDFS.label, Literal("pyiron")))
         
         #add lammps
-        #lammps_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E447986")
-        #self.graph.add((lammps_agent, RDF.type, PROV.SoftwareAgent))
-        #self.graph.add((pyiron_agent, PROV.actedOnBehalfOf, lammps_agent))
-        #self.graph.add((lammps_agent, RDFS.label, Literal("LAMMPS")))
+        lammps_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E447986")
+        self.graph.add((lammps_agent, RDF.type, PROV.SoftwareAgent))
+        self.graph.add((pyiron_agent, PROV.actedOnBehalfOf, lammps_agent))
+        self.graph.add((lammps_agent, RDFS.label, Literal("LAMMPS")))
 
 
     def _add_calculated_properties(self):

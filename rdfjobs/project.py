@@ -33,7 +33,7 @@ class Project(ProjectCore):
         )
         self.job_type = JobTypeChoice()
         self._graph_file = os.path.join(self.path, "project.db")
-        self._structure_store = os.path.join(prpath, 'rdf_structure_store')
+        self._structure_store = os.path.join(self.path, 'rdf_structure_store')
         self.graph = StructureGraph(store="SQLAlchemy", 
             store_file=self._graph_file, 
             structure_store=self._structure_store)
