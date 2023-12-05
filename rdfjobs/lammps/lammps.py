@@ -150,7 +150,8 @@ class RDFLammps(Lammps):
         df = self.potential
         df = df.loc[0]
         ps = df["Config"][0]
-        return ps.strip().split()
+        ps = ps.strip().split()
+        return " ".join(ps[1:])
 
     def _add_initial_structure_to_graph(self):
         #-------------------------------------------------
@@ -268,7 +269,6 @@ class RDFLammps(Lammps):
             self.graph.add((temperature, ASO.hasUnit, URIRef('http://qudt.org/vocab/unit/K')))
         
         potential_string = self._get_potential_string()
-        potential_string = " ".join(potential_string.split()[1:])
         potential = URIRef(f'potential:{main_id}')
 
         if 'meam' in potential_string:
