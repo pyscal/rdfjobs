@@ -1,4 +1,4 @@
-name: rdf-wf-6
+name: rdf-wf-7
 channels:
 - conda-forge
 dependencies:

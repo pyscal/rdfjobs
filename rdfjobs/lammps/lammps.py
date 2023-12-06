@@ -212,7 +212,7 @@ class RDFLammps(Lammps):
         self.graph.add((self._final_sample, PROV.wasDerivedFrom, self._initial_sample))
         
         #add the process that generated the samples
-        main_id = uuid.uuid4()
+        main_id = self.id
         activity = URIRef(f'activity:{main_id}')
         self.graph.add((activity, RDF.type, PROV.Activity))
         self.graph.add((activity, RDF.type, ASO.StructureOptimization))
@@ -284,7 +284,8 @@ class RDFLammps(Lammps):
 
         self.graph.add((potential, ASO.hasReference, Literal(self._get_potential_doi())))
         self.graph.add((self._final_sample, PROV.wasGeneratedBy, activity))
-        
+        self.graph.add((method, ASO.hasInteratomicPotential, potential))
+
         #add pyiron
         pyiron_agent = URIRef("http://demo.fiz-karlsruhe.de/matwerk/E457491")
         self.graph.add((pyiron_agent, RDF.type, PROV.SoftwareAgent))
